@@ -25,7 +25,7 @@ import sqlite3
 import argparse
 
 from process_sql import get_schema, Schema, get_sql
-from exec_eval import eval_exec_match
+from exec_eval import eval_exec_match, postprocess
 
 # Flag to disable value evaluation
 DISABLE_VALUE = True
@@ -558,6 +558,7 @@ def evaluate(gold, predict, db_dir, etype, kmaps, plug_value, keep_distinct, pro
         for type_ in partial_types:
             scores[level]['partial'][type_] = {'acc': 0., 'rec': 0., 'f1': 0.,'acc_count':0,'rec_count':0}
 
+    exec_results = []
     for i, (p, g) in enumerate(zip(plist, glist)):
         if (i + 1) % 10 == 0:
             print('Evaluating %dth prediction' % (i + 1))
@@ -606,7 +607,7 @@ def evaluate(gold, predict, db_dir, etype, kmaps, plug_value, keep_distinct, pro
                 }
 
             if etype in ["all", "exec"]:
-                exec_score = eval_exec_match(db=db, p_str=p_str, g_str=g_str, plug_value=plug_value,
+                exec_score, p_deno, g_deno = eval_exec_match(db=db, p_str=p_str, g_str=g_str, plug_value=plug_value,
                                              keep_distinct=keep_distinct, progress_bar_for_each_datapoint=progress_bar_for_each_datapoint)
                 if exec_score:
                     scores[hardness]['exec'] += 1
@@ -615,6 +616,7 @@ def evaluate(gold, predict, db_dir, etype, kmaps, plug_value, keep_distinct, pro
                     turn_scores['exec'].append(1)
                 else:
                     turn_scores['exec'].append(0)
+                exec_results.append('\n'.join([str(exec_score), db_name, postprocess(p_str), postprocess(g_str), str(p_deno), str(g_deno), '\n']))
 
             if etype in ["all", "match"]:
                 # rebuild sql for value evaluation
@@ -703,7 +705,7 @@ def evaluate(gold, predict, db_dir, etype, kmaps, plug_value, keep_distinct, pro
                         scores[level]['partial'][type_]['rec'] + scores[level]['partial'][type_]['acc'])
 
     print_scores(scores, etype, include_turn_acc=include_turn_acc)
-
+    [print(each) for each in exec_results]
 
 # Rebuild SQL functions for value evaluation
 def rebuild_cond_unit_val(cond_unit):

@@ -239,7 +239,7 @@ def eval_exec_match(db: str, p_str: str, g_str: str, plug_value: bool, keep_dist
 
         # the model prediction has the same denotation as the gold for all databases
         if pred_passes == 1:
-            return 1
+            return 1, p_denotation, g_denotation
 
     # none of the predictions passed
-    return 0
+    return 0, p_denotation, g_denotation
